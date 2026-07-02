@@ -166,7 +166,13 @@ get_logout_cmd() {
 			fi
 			;;
 		labwc) echo "${_waybar_stack}pkill labwc" ;;
-		mango) echo "${_waybar_stack}pkill mango" ;;
+		mango|kiro-mango)
+			# kiro-mango.desktop's file id is "kiro-mango" (DesktopNames=mango;wlroots
+			# sits alongside upstream mangowm's own mango.desktop), but DESKTOP_SESSION
+			# is derived from the filename and takes priority in detect_desktop() above
+			# -> without this alias the case falls through and nothing gets killed.
+			echo "${_waybar_stack}pkill mango"
+			;;
 		dwl) echo "pkill dwl" ;;
 		plasma|plasmawayland|plasmax11|kde|kde-plasma)
 			# Plasma 6 native logout (X11 + Wayland). Stops graphical-session.target
