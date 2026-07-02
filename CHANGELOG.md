@@ -1,5 +1,39 @@
 # Changelog
 
+## 2026.07.02
+
+### What Changed
+- **Aligned `powermenu.sh`'s full logout and lock logic with archlinux-logout** (`Functions.py`),
+  continuing the 2026.06.23 Hyprland-only sync. The old logout handled just dk/hyprland/herbstluftwm/
+  chadwm/ohmychadwm and fell back to a bare `pkill $desktop` — which is actively harmful for the desktops
+  archlinux-logout special-cases: `pkill plasma` black-screens the next login (kwin keeps DRM-master) and
+  pkill-ing a Wayland compositor orphans waybar/mako/hypridle. The lock action ran `i3lock-fancy-dualmonitor`
+  unconditionally, which can't grab a Wayland session.
+- Logout now mirrors `_get_logout()` in full: Plasma via `qdbus6 ... logout`, GNOME via `gnome-session-quit`,
+  xfce via `xfce4-session-logout`, Wayland compositors (sway/river/wayfire/labwc/mango/niri) kill their
+  companion daemons before the compositor, niri distinguishes kiro-niri (noctalia) from kiro-ohmyniri
+  (waybar stack), ohmychadwm uses its `shutdown_ohmychadwm.sh` when present, plus the full WM table.
+- Lock now mirrors `resolve_lock_cmd()`: KScreenLocker (`loginctl lock-session`) on Plasma, first available
+  native Wayland locker (hyprlock/gtklock) on other Wayland sessions, i3lock unchanged on X11.
+
+### Technical Details
+- Added three bash helpers modelled 1:1 on `Functions.py`, with a source-of-truth comment marking that file
+  as canonical so future re-syncs (like the Hyprland one) stay in step: `detect_desktop()` (mirrors
+  `_detect_desktop()` — DESKTOP_SESSION → XDG fallbacks, `:`/path stripping, lowercase, `ly` handling,
+  pgrep fallback for chadwm/ohmychadwm), `get_logout_cmd()` (mirrors `_get_logout()`), and
+  `resolve_lock_cmd()` (mirrors the Python of the same name).
+- **Lock-swap gotcha fixed:** `Functions.py` matches its X11-locker set (`betterlockscreen`, `i3lock`) by
+  exact first word, which would MISS `i3lock-fancy-dualmonitor` and leave the Wayland swap a no-op. The port
+  matches the `i3lock*`/`betterlockscreen*` prefix instead, so the swap actually fires.
+- The `run_cmd --logout` branch is now a two-line `cmd="$(get_logout_cmd)"; eval "$cmd"`; the Lock action is
+  `eval "$(resolve_lock_cmd i3lock-fancy-dualmonitor)"`. rofi scaffolding, confirmation flow, and the
+  systemctl shutdown/reboot and suspend (`mpc -q pause; amixer set Master mute`) branches are untouched.
+- `bash -n` clean; echo-traced the produced command string for hyprland/ohmychadwm/plasma/niri/sway/xfce/
+  gnome/dwm/unknown and for plasma-X11 / wayland / x11 lock resolution — all produce the expected string.
+
+### Files Modified
+- etc/skel/.config/powermenu/powermenu.sh
+
 ## 2026.06.23
 
 ### What Changed
