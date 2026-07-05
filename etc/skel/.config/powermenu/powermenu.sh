@@ -131,7 +131,9 @@ get_logout_cmd() {
 		fvwm3) echo "pkill fvwm3" ;;
 		stumpwm) echo "pkill stumpwm" ;;
 		leftwm) echo "pkill leftwm" ;;
-		hyprland|hypr|hyprland-uwsm)
+		hyprland|hypr|hyprland-uwsm|kiro-hyprland-noctalia)
+			# kiro-hyprland-noctalia ships its own session but is plain Hyprland underneath
+			# (noctalia-shell is a Hyprland child, taken down by the clean compositor exit).
 			# uwsm -> graceful ordered shutdown; Hyprland 0.55+ runs a Lua config where
 			# `hyprctl dispatch exit` is parsed as hl.dispatch(exit) and rejected, so use
 			# the hl.dsp.exit() dispatcher; legacy exit otherwise. Never pkill (breaks uwsm).
@@ -155,14 +157,32 @@ get_logout_cmd() {
 		river) echo "${_waybar_stack}pkill river" ;;
 		wayfire) echo "${_waybar_stack}pkill wayfire" ;;
 		newm) echo "pkill newm" ;;
+		kiro-niri-noctalia|kiro-niri)
+			# niri runs as a systemd user service (Type=notify): its own clean quit stops
+			# graphical-session.target and takes the shell it spawned down with it. `pkill
+			# niri` hard-kills the compositor out from under systemd, leaving a half-dead
+			# session that looked like "logout needs two presses". noctalia-shell is a niri
+			# child, so the clean quit takes it down too.
+			echo "niri msg action quit -s"
+			;;
+		kiro-ohmyniri)
+			# Kill the loose waybar/mako/swayidle/variety daemons first, then clean-quit.
+			echo "${_waybar_stack}pkill swayidle; pkill variety; niri msg action quit -s"
+			;;
+		kiro-niri-dms)
+			# DankMaterialShell edition: dms (the shell backend), its qs quickshell child
+			# and variety are loose siblings under systemd --user, not niri children, so
+			# quitting the compositor alone orphans them. `dms kill` tears the shell (and its
+			# qs) down cleanly; kill variety too, then clean-quit niri.
+			echo "dms kill 2>/dev/null; pkill -x dms; pkill -x variety; niri msg action quit -s"
+			;;
 		niri)
-			# Two niri editions share XDG_CURRENT_DESKTOP="niri": kiro-niri runs
-			# noctalia-shell; kiro-ohmyniri runs the waybar/mako/swayidle/variety stack.
-			# Tell them apart by which shell is actually running.
+			# Plain upstream niri (no Kiro session entry): probe which shell is running to
+			# tell the editions apart, but always clean-quit — never pkill (see above).
 			if pgrep -f "qs -c noctalia-shell" >/dev/null 2>&1; then
-				echo "pkill -f 'qs -c noctalia-shell'; pkill niri"
+				echo "niri msg action quit -s"
 			else
-				echo "${_waybar_stack}pkill swayidle; pkill variety; pkill niri"
+				echo "${_waybar_stack}pkill swayidle; pkill variety; niri msg action quit -s"
 			fi
 			;;
 		labwc) echo "${_waybar_stack}pkill labwc" ;;

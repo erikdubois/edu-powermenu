@@ -1,5 +1,27 @@
 # Changelog
 
+## 2026.07.05
+
+### What Changed
+- **Re-synced `powermenu.sh`'s niri and Hyprland logout with archlinux-logout** (`Functions.py`), which had
+  since moved niri off `pkill niri`. Hard-killing the compositor tore it out from under its `systemd --user`
+  service (`niri.service`, `Type=notify`), leaving a half-dead session — the classic "logout needs two
+  presses" on Wayland niri editions. All niri paths now clean-quit via `niri msg action quit -s`, which stops
+  `graphical-session.target` and takes the shell it spawned down with it.
+- Added the Kiro niri session editions so each logs out cleanly from any TWM on Wayland: `kiro-niri-noctalia`/
+  `kiro-niri` (noctalia), `kiro-ohmyniri` (waybar/mako/swayidle/variety stack), and `kiro-niri-dms`
+  (DankMaterialShell — `dms kill` + kill its loose qs/variety siblings). Plain upstream `niri` keeps the
+  runtime shell probe but clean-quits in both branches.
+- Added the `kiro-hyprland-noctalia` alias to the Hyprland case (its own session, plain Hyprland underneath).
+
+### Technical Details
+- `Functions.py` remains the source of truth; these are 1:1 ports of its current `_get_logout()` niri/Hyprland
+  branches, keeping the mirror comment's promise. The `_waybar_stack` companion-daemon kill order is unchanged.
+- Verified with `bash -n`.
+
+### Files Modified
+- `etc/skel/.config/powermenu/powermenu.sh`
+
 ## 2026.07.02
 
 ### What Changed
